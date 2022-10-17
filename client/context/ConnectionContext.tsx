@@ -30,7 +30,8 @@ export const ConnectionContextProvider = ({
   const [accounts, setAccounts] = useState<string[]>();
   const [contract, setContract] = useState<ethers.Contract>();
   const [error, setError] = useState<string>();
-  const contractAddress = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
+  //On goerli
+  const contractAddress = "0x47234AAACbB17b0ec81823EAa0E67A2623A5Eed1";
   
   const connectWallet = useCallback(async () => {
     console.log("connecting")
