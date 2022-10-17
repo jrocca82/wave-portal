@@ -34,7 +34,7 @@ export const ConnectionContextProvider = ({
   const contractAddress = "0x47234AAACbB17b0ec81823EAa0E67A2623A5Eed1";
   
   const connectWallet = useCallback(async () => {
-    console.log("connecting")
+    console.log("connecting");
     //@ts-ignore
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     if(!provider) {
