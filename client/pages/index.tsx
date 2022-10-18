@@ -1,30 +1,57 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { Container, Flex, Text, Heading, Button } from "@chakra-ui/react";
+import { Flex, Text, Heading, Button, Input } from "@chakra-ui/react";
 import { useContext, useEffect, useState } from "react";
 import { ConnectionContext } from "../context/ConnectionContext";
+import { Wave } from "../types/wave";
+import trunacteEthAddress from "truncate-eth-address";
 
 const Home: NextPage = () => {
 	const { accounts, contract, connectWallet } = useContext(ConnectionContext);
-	const [totalWaves, setTotalWaves] = useState<number>();
+	const [totalWaves, setTotalWaves] = useState<number>(0);
+	const [allWaves, setAllWaves] = useState<Wave[]>([]);
+	const [value, setValue] = useState<string>("");
+
+	const handleChange = (event: any) => setValue(event.target.value);
 
 	const wave = async () => {
-		await contract?.wave();
+		await contract?.wave(value, { gasLimit: 300000 });
 	};
 
-	const getWaves = async () => {
-		console.log("Getting total waves");
-		const waves = await contract?.getTotalWaves();
-		if (waves) {
-			console.log(Number(waves));
-			const waveTotal = Number(waves);
-			setTotalWaves(waveTotal);
-		}
+	const getAllWaves = async () => {
+		const waves: Wave[] = await contract?.getAllWaves();
+		waves?.map((wave) => {
+			return {
+				address: wave.waver,
+				timestamp: wave.timestamp,
+				message: wave.message,
+			};
+		});
+		console.log(waves);
+		setAllWaves(waves);
+	};
+
+	const onNewWave = (wave: Wave) => {
+		console.log("NewWave", wave);
+		setAllWaves({
+			...allWaves,
+			[wave.waver]: wave.waver,
+			[wave.timestamp]: wave.timestamp,
+			[wave.message]: wave.message,
+		});
+		setTotalWaves(allWaves.length);
 	};
 
 	useEffect(() => {
-		getWaves();
-	}, [totalWaves]);
+		getAllWaves();
+		contract?.on("NewWave", onNewWave);
+
+		return () => {
+			if (contract) {
+				contract.off("NewWave", onNewWave);
+			}
+		};
+	}, []);
 
 	return (
 		<Flex>
@@ -51,11 +78,16 @@ const Home: NextPage = () => {
 					<Text fontSize="36px">
 						My name is Jo Rocca and I am a blockchain dev!
 					</Text>
+					<Input
+						placeholder="Say hello on chain!"
+						value={value}
+						onChange={handleChange}
+						maxLength={20}
+					/>
 					<Button
 						bgColor="purple"
 						color="white"
-						w="300px"
-						padding="10px"
+						padding="30px"
 						border="none"
 						borderRadius="30px"
 						alignSelf="center"
@@ -63,26 +95,49 @@ const Home: NextPage = () => {
 						my="15px"
 						onClick={accounts ? wave : connectWallet}
 					>
-						{accounts ? "Wave to me on chain!" : "Connect Metamask"}
+						{accounts ? "Wave and send a message!" : "Connect Metamask"}
 					</Button>
 
 					{accounts ? (
-						<Flex justify="space-around" mt="50px" w="500px" alignSelf="center">
-							<Text fontSize="24px">Total waves: {totalWaves}</Text>
-							<Button
-								bgColor="purple"
-								color="white"
-								w="300px"
-								padding="10px"
-								border="none"
-								borderRadius="30px"
+						<>
+							<Flex
+								justify="space-around"
+								mt="50px"
+								w="500px"
 								alignSelf="center"
-								fontSize="24px"
-								onClick={getWaves}
+								align="center"
 							>
-								Update wave total
-							</Button>
-						</Flex>
+								<Text fontSize="24px">Total waves: {totalWaves}</Text>
+							</Flex>
+							{totalWaves > 0 && (
+								<Flex my="50px" border="3px white solid" flexDir="column">
+									{allWaves.map((wave, index) => {
+										return (
+											<Flex
+												key={index}
+												justify="space-between"
+												w="100%"
+												padding="20px"
+												borderBottom={
+													index === totalWaves - 1 ? "none" : "3px solid white"
+												}
+											>
+												<Text>Address: {trunacteEthAddress(wave.waver)}</Text>
+												<Flex w="1px" bgColor="white" height="100%"></Flex>
+												<Text>
+													Time:{" "}
+													{new Date(
+														Number(wave.timestamp) * 1000
+													).toLocaleString()}
+												</Text>
+												<Flex w="1px" bgColor="white" height="100%"></Flex>
+												<Text>Message: {wave.message}</Text>
+											</Flex>
+										);
+									})}
+								</Flex>
+							)}
+						</>
 					) : null}
 				</Flex>
 			</Flex>
